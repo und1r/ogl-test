@@ -236,24 +236,50 @@ Mesh processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 transform,
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
 
+    // Normal matrix for baking transforms into static meshes
     glm::mat3 normal_matrix =
         glm::transpose(glm::inverse(glm::mat3(transform)));
+
+    bool has_bones = (mesh->mNumBones > 0);
 
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
         resetVertexBoneData(vertex);
 
-        glm::vec4 pos = glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y,
-                                  mesh->mVertices[i].z, 1.0f);
-        glm::vec4 transformed_pos = transform * pos;
-        vertex.position = glm::vec3(transformed_pos);
+        // --- CRITICAL FIX FOR RAGDOLL/SINKING ---
+        // If the mesh has bones, we MUST NOT bake the static 'transform' into
+        // the vertices. The Animation system expects vertices in Local (Bind)
+        // Space.
 
-        if (mesh->HasNormals()) {
-            glm::vec3 norm = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y,
-                                       mesh->mNormals[i].z);
-            vertex.normal = glm::normalize(normal_matrix * norm);
+        if (has_bones) {
+            // SKELETAL MESH (Player): Keep vertices in Local Space
+            vertex.position =
+                glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y,
+                          mesh->mVertices[i].z);
+
+            if (mesh->HasNormals()) {
+                vertex.normal =
+                    glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y,
+                              mesh->mNormals[i].z);
+            } else {
+                vertex.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            }
         } else {
-            vertex.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            // STATIC MESH (Castle): Bake the Transform into the vertices
+            glm::vec4 pos =
+                glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y,
+                          mesh->mVertices[i].z, 1.0f);
+            glm::vec4 transformed_pos = transform * pos;
+            vertex.position = glm::vec3(transformed_pos);
+
+            if (mesh->HasNormals()) {
+                glm::vec3 norm =
+                    glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y,
+                              mesh->mNormals[i].z);
+                vertex.normal = glm::normalize(normal_matrix * norm);
+            } else {
+                vertex.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            }
         }
 
         if (mesh->mTextureCoords[0]) {
@@ -266,7 +292,9 @@ Mesh processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 transform,
         vertices.push_back(vertex);
     }
 
-    extractBoneWeightForVertices(vertices, mesh, model);
+    if (has_bones) {
+        extractBoneWeightForVertices(vertices, mesh, model);
+    }
 
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
         aiFace face = mesh->mFaces[i];

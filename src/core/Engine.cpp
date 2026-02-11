@@ -105,7 +105,10 @@ void runEngine(Engine &engine) {
         engine.state.last_frame = current_frame;
 
         // --- ANIMATION UPDATE ---
-        updateAnimator(engine.state.player_animator, engine.state.delta_time);
+        // APPLY CONFIG SPEED HERE
+        updateAnimator(engine.state.player_animator,
+                       engine.state.delta_time *
+                           Config::PLAYER_ANIMATION_SPEED);
         // ------------------------
 
         // --- PHYSICS & COLLISION ---

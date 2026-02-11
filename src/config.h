@@ -25,8 +25,11 @@ const float MOVEMENT_SPEED = 20.0f;
 
 // Physics Settings
 const float GRAVITY_STRENGTH = 9.81f;
-const float PLAYER_RADIUS = 1.5f; // Radius of the player's collision sphere
+const float PLAYER_RADIUS = 1.2f; // Radius of the player's collision sphere
 const float JUMP_STRENGTH = 5.0f; // Initial vertical velocity for a jump
+
+// Animation
+const float PLAYER_ANIMATION_SPEED = 2.0f;
 
 // Dynamic Light Position (for main light source)
 const float DYNAMIC_LIGHT_POS_X = 0.0f;
